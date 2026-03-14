@@ -35,9 +35,8 @@ Search rules
 - If no memories are found, answer normally without inventing any.
 
 When to DELETE
-- Use memory_delete_tool with a query to forget specific facts (e.g., "forget my name").
-- Only set delete_all=true when the user explicitly asks to erase/delete/reset all long-term memories.
-- After deletion, confirm what was deleted.
+- Only call memory_delete_tool if the user explicitly asks to erase/delete/reset all long-term memories.
+- After deletion, confirm that memories are cleared.
 
 Response formatting
 - Use plain language.
