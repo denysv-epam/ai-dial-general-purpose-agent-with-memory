@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 from task.tools.base import BaseTool
@@ -18,23 +19,52 @@ class DeleteMemoryTool(BaseTool):
 
     @property
     def name(self) -> str:
-        # TODO: provide self-descriptive name
-        raise NotImplementedError()
+        return "memory_delete_tool"
 
     @property
     def description(self) -> str:
-        # TODO: provide tool description that will help LLM to understand when to use this tools and cover 'tricky'
-        #  moments (not more 1024 chars)
-        raise NotImplementedError()
+        return (
+            "Deletes long-term memories. Use a query to delete specific facts (e.g., 'forget my name'). "
+            "Only delete ALL memories when the user explicitly asks to erase/reset everything."
+        )
 
     @property
     def parameters(self) -> dict[str, Any]:
-        # TODO: provide tool parameters JSON Schema with empty properties
-        raise NotImplementedError()
+        return {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "What to forget. Use for targeted deletion."
+                },
+                "delete_all": {
+                    "type": "boolean",
+                    "description": "Set true ONLY when the user asks to delete all memories.",
+                    "default": False
+                }
+            }
+        }
 
     async def _execute(self, tool_call_params: ToolCallParams) -> str:
-        #TODO:
-        # 1. Call `memory_store` `delete_all_memories` (we will implement logic in `memory_store` later
-        # 2. Add result to stage
-        # 3. Return result
-        raise NotImplementedError()
+        arguments = tool_call_params.tool_call.function.arguments
+        payload = json.loads(arguments) if arguments else {}
+        query = payload.get("query")
+        delete_all = payload.get("delete_all", False)
+
+        if delete_all:
+            result = await self.memory_store.delete_all_memories(api_key=tool_call_params.api_key)
+        elif query:
+            result = await self.memory_store.delete_memories(
+                api_key=tool_call_params.api_key,
+                query=query,
+            )
+        else:
+            result = "No deletion performed. Provide a query or set delete_all to true."
+
+        stage = tool_call_params.stage
+        stage.append_content("## Request arguments: \n")
+        stage.append_content(f"```json\n\r{json.dumps(payload, indent=2)}\n\r```\n\r")
+        stage.append_content("## Response: \n")
+        stage.append_content(f"{result}\n")
+
+        return result

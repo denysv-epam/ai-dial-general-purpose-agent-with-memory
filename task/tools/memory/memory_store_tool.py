@@ -23,32 +23,73 @@ class StoreMemoryTool(BaseTool):
 
     @property
     def name(self) -> str:
-        # TODO: provide self-descriptive name
-        raise NotImplementedError()
+        return "memory_store_tool"
 
     @property
     def description(self) -> str:
-        # TODO: provide tool description that will help LLM to understand when to use this tools and cover 'tricky'
-        #  moments (not more 1024 chars)
-        raise NotImplementedError()
+        return (
+            "Stores a concise long-term memory about the user. Use ONLY for durable, user-specific facts that are likely "
+            "to be useful later (preferences, personal info, goals, plans, important context). Do NOT store transient "
+            "chat details, tool outputs, or sensitive secrets. Summarize into a single clear sentence. Avoid duplicates; "
+            "if the fact is already known, skip storing."
+        )
 
     @property
     def parameters(self) -> dict[str, Any]:
-        # TODO: provide tool parameters JSON Schema:
-        #  - content is string, description: "The memory content to store. Should be a clear, concise fact about the user.", required
-        #  - category is string, description: "Category of the info (e.g., 'preferences', 'personal_info', 'goals', 'plans', 'context')", default is 'general' required
-        #  - importance is number, description: "Importance score between 0 and 1. Higher means more important to remember.", minimum is 0, maximum is 1, default is 0.5
-        #  - topics is array of strings, description: "Related topics or tags for the memory", default is empty array
-        raise NotImplementedError()
+        return {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "description": "The memory content to store. Should be a clear, concise fact about the user."
+                },
+                "category": {
+                    "type": "string",
+                    "description": "Category of the info (e.g., 'preferences', 'personal_info', 'goals', 'plans', 'context')",
+                    "default": "general"
+                },
+                "importance": {
+                    "type": "number",
+                    "description": "Importance score between 0 and 1. Higher means more important to remember.",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "default": 0.5
+                },
+                "topics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Related topics or tags for the memory",
+                    "default": []
+                }
+            },
+            "required": ["content", "category"]
+        }
 
     async def _execute(self, tool_call_params: ToolCallParams) -> str:
-        #TODO:
-        # 1. Load arguments with `json`
-        # 2. Get `content` from arguments
-        # 3. Get `category` from arguments
-        # 4. Get `importance` from arguments, default is 0.5
-        # 5. Get `topics` from arguments, default is empty array
-        # 6. Call `memory_store` `add_memory` (we will implement logic in `memory_store` later)
-        # 7. Add result to stage
-        # 8. Return result
-        raise NotImplementedError()
+        arguments = json.loads(tool_call_params.tool_call.function.arguments)
+        content = arguments["content"]
+        category = arguments.get("category", "general")
+        importance = arguments.get("importance", 0.5)
+        topics = arguments.get("topics", [])
+
+        result = await self.memory_store.add_memory(
+            api_key=tool_call_params.api_key,
+            content=content,
+            importance=importance,
+            category=category,
+            topics=topics,
+        )
+
+        stage = tool_call_params.stage
+        stage.append_content("## Request arguments: \n")
+        stage.append_content(f"**Content**: {content}\n\r")
+        stage.append_content(f"**Category**: {category}\n\r")
+        stage.append_content(f"**Importance**: {importance}\n\r")
+        if topics:
+            stage.append_content(f"**Topics**: {', '.join(topics)}\n\r")
+        stage.append_content("## Response: \n")
+        stage.append_content(f"{result}\n")
+
+        return result
