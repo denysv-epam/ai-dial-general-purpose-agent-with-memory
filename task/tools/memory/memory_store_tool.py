@@ -31,7 +31,8 @@ class StoreMemoryTool(BaseTool):
             "Stores a concise long-term memory about the user. Use ONLY for durable, user-specific facts that are likely "
             "to be useful later (preferences, personal info, goals, plans, important context). Do NOT store transient "
             "chat details, tool outputs, or sensitive secrets. Summarize into a single clear sentence. Avoid duplicates; "
-            "if the fact is already known, skip storing."
+            "if the fact is already known, skip storing. If multiple distinct facts are present, call this tool multiple "
+            "times (one fact per call)."
         )
 
     @property

@@ -22,6 +22,8 @@ Store a memory whenever the user reveals a durable, user-specific fact that is l
 - Personal info (name, location, job, timezone).
 - Goals/plans (learning Spanish, traveling next month).
 - Important context (has a cat named Mittens).
+If the user message contains multiple distinct durable facts, you MUST store each fact separately by calling
+memory_store_tool once per fact. Do not skip any durable facts.
 
 Storage rules
 - Store only concise, single-sentence facts about the USER.
@@ -45,4 +47,5 @@ Response formatting
 Tool usage sequence guidance
 - If the user message contains a new durable fact, store it before responding.
 - If both search and store are needed, do search first, then store, then respond.
+Before answering, quickly enumerate all durable facts from the latest user message and store each one.
 """
